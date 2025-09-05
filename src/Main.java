@@ -1,15 +1,43 @@
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
-    public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
+    private static final Object lock = new Object();
+    private static boolean firstThreadDone = false;
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
-        }
+    public static void main(String[] args) {
+
+        // Thread 1: Counts up to 20
+        Thread countUpThread = new Thread(() -> {
+            for (int i = 0; i <= 20; i++) {
+                System.out.println("Count Up: " + i);
+            }
+
+            synchronized (lock) {
+                firstThreadDone = true;
+                lock.notify(); // Notify the waiting thread
+            }
+        });
+
+        // Thread 2: Counts down to 0
+        Thread countDownThread = new Thread(() -> {
+            synchronized (lock) {
+                while (!firstThreadDone) {
+                    try {
+                        lock.wait(); // Wait until count up finishes
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        System.out.println("Thread interrupted");
+                        return;
+                    }
+                }
+            }
+
+            for (int i = 20; i >= 0; i--) {
+                System.out.println("Count Down: " + i);
+            }
+        });
+
+        countUpThread.start();
+        countDownThread.start();
     }
 }
